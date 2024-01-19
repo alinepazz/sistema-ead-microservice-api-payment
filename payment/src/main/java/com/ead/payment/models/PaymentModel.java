@@ -3,7 +3,6 @@ package com.ead.payment.models;
 import com.ead.payment.enums.PaymentControl;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
 import javax.persistence.*;
 import java.io.Serializable;
 import java.math.BigDecimal;
