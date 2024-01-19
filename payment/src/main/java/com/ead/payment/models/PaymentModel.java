@@ -2,6 +2,8 @@ package com.ead.payment.models;
 
 import com.ead.payment.enums.PaymentControl;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import javax.persistence.*;
 import java.io.Serializable;
 import java.math.BigDecimal;
@@ -34,6 +36,10 @@ public class PaymentModel implements Serializable {
     private String paymentMessage;
     @Column
     private boolean recurrence;
+
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    private UserModel user;
 
     public UUID getPaymentId() {
         return paymentId;
@@ -105,5 +111,13 @@ public class PaymentModel implements Serializable {
 
     public void setRecurrence(boolean recurrence) {
         this.recurrence = recurrence;
+    }
+
+    public UserModel getUser() {
+        return user;
+    }
+
+    public void setUser(UserModel user) {
+        this.user = user;
     }
 }
