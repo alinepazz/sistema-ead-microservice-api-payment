@@ -3,10 +3,12 @@ package com.ead.payment.services.impl;
 import com.ead.payment.dtos.PaymentCommandDto;
 import com.ead.payment.dtos.PaymentRequestDto;
 import com.ead.payment.enums.PaymentControl;
+import com.ead.payment.enums.PaymentStatus;
 import com.ead.payment.models.CreditCardModel;
 import com.ead.payment.models.PaymentModel;
 import com.ead.payment.models.UserModel;
 import com.ead.payment.publishers.PaymentCommandPublisher;
+import com.ead.payment.publishers.PaymentEventPublisher;
 import com.ead.payment.repositories.CreditCardRepository;
 import com.ead.payment.repositories.PaymentRepository;
 import com.ead.payment.repositories.UserRepository;
@@ -46,6 +48,9 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Autowired
     PaymentCommandPublisher paymentCommandPublisher;
+
+    @Autowired
+    PaymentEventPublisher paymentEventPublisher;
 
     @Transactional
     @Override
@@ -109,5 +114,25 @@ public class PaymentServiceImpl implements PaymentService {
         var creditCardModel = creditCardRepository.findById(paymentCommandDto.getCardId()).get();
 
         paymentModel = paymentStripeService.processStripePayment(paymentModel, creditCardModel);
+        paymentRepository.save(paymentModel);
+
+        if(paymentModel.getPaymentControl().equals(PaymentControl.EFFECTED)){
+            userModel.setPaymentStatus(PaymentStatus.PAYING);
+            userModel.setLastPaymentDate(LocalDateTime.now(ZoneId.of("UTC")));
+            userModel.setPaymentExpirationDate(LocalDateTime.now(ZoneId.of("UTC")).plusDays(30));
+            if(userModel.getFirstPaymentDate() == null){
+                userModel.setFirstPaymentDate(LocalDateTime.now(ZoneId.of("UTC")));
+            }
+        } else{
+            userModel.setPaymentStatus(PaymentStatus.DEBTOR);
+        }
+        userRepository.save(userModel);
+
+        if(paymentModel.getPaymentControl().equals(PaymentControl.EFFECTED) ||
+                paymentModel.getPaymentControl().equals(PaymentControl.REFUSED)){
+            paymentEventPublisher.publishPaymentEvent(paymentModel.convertToPaymentEventDto());
+        } else if(paymentModel.getPaymentControl().equals(PaymentControl.ERROR)) {
+            //retry process and limits retry
+        }
     }
 }
