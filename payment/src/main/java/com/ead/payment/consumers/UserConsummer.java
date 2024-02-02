@@ -3,6 +3,7 @@ package com.ead.payment.consumers;
 import com.ead.payment.dtos.UserEventDto;
 import com.ead.payment.enums.ActionType;
 import com.ead.payment.enums.PaymentStatus;
+import com.ead.payment.models.UserModel;
 import com.ead.payment.services.UserService;
 import org.springframework.amqp.core.ExchangeTypes;
 import org.springframework.amqp.rabbit.annotation.Exchange;
@@ -25,15 +26,17 @@ public class UserConsummer {
     ))
 
     public void listenUserEvent(@Payload UserEventDto userEventDto){
-        var userModel = userEventDto.convertToUserModel();
+
 
         switch (ActionType.valueOf(userEventDto.getActionType())){
             case CREATE:
+                var userModel = userEventDto.convertToUserModel(new UserModel());
                 userModel.setPaymentStatus(PaymentStatus.NOTSTARTED);
                 userService.save(userModel);
                 break;
             case UPDATE:
-                userService.save(userModel);
+                userService.save(userEventDto.convertToUserModel(
+                        userService.findById(userEventDto.getUserId()).get()));
                 break;
             case DELETE:
                 userService.delete(userEventDto.getUserId());
